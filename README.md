@@ -11,28 +11,24 @@
 
 2 - Create the environment:
 ```
-python3 -m venv enn
-
+python3 -m venv env
 ```
 
 3 - Source into the environment:
 ```
 source env/bin/activate
-
 ```
 
 4 - Install Dependencies:
 ```
 pip install --upgrade pip
 pip install -r requirements.txt
-
 ```
 
 5 - Execute:
 
 ```python
 python main.py
-
 ```
 
 
