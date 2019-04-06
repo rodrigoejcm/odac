@@ -41,4 +41,4 @@ python main.py
 
 ODAC algorith as described in:
     
-    Rodrigues, Pedro Pereira, Joao Gama, and Joao Pedroso. "Hierarchical clustering of time-series data streams." IEEE transactions on knowledge and data engineering 20.5 (2008): 615-627.
+- Rodrigues, Pedro Pereira, Joao Gama, and Joao Pedroso. "Hierarchical clustering of time-series data streams." IEEE transactions on knowledge and data engineering 20.5 (2008): 615-627.
