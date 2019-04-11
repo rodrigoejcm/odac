@@ -2,7 +2,7 @@ from anytree import NodeMixin, RenderTree
 from itertools import combinations_with_replacement
 from collections import OrderedDict
 import numpy as np
-from math import sqrt
+from math import sqrt, log
 
 class Statistics:
 
@@ -14,6 +14,7 @@ class Statistics:
         self.rnomc_dict = {}     # key: tuple of two cluster numbers
         self.cluster_diameter = 0
         self.n_of_instances = 0
+        self.hoeffding_bound = 0.
 
         for i in range(ts_quantity):
             self.sum_dict[i] = 0.
@@ -35,13 +36,15 @@ class Statistics:
         print(self.corr_dict)
         print("# rnomc_dict:")
         print(self.rnomc_dict)
+        print("# hoeffding_bound = {}".format(self.hoeffding_bound))
 
 
 class Cluster:
 
-    def __init__(self):
+    def __init__(self, confidence_level = 0.05):
         self.active_cluster = True
         self.statistics = None
+        self.confidence_level = confidence_level
 
 
     def set_cluster_timeseries(self,list_ts):
@@ -110,6 +113,15 @@ class Cluster:
         return self.statistics.rnomc_dict
 
 
+    def calcula_hoeffding_bound(self,init=False):
+
+        r_sqrd = 1  # because the data is normalized
+        self.statistics.hoeffding_bound = sqrt(r_sqrd * log(1/self.confidence_level) \
+            / (2 * self.statistics.n_of_instances))
+
+        return self.statistics.hoeffding_bound
+
+
     def update_statistics(self , init=False):
 
         if init == False:
@@ -136,7 +148,10 @@ class Cluster:
             ### calculate Matrice dif
             self.calcula_rnomc_dict()
 
+        self.calcula_hoeffding_bound()
+
         self.statistics.print()
+        print("")
 
 
     def get_new_timeseries_values(self):
