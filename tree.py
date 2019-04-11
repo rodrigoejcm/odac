@@ -4,151 +4,143 @@ from collections import OrderedDict
 import numpy as np
 from math import sqrt
 
+class Statistics:
+
+    def __init__(self, ts_quantity):
+
+        self.sum_dict = {}       # key: cluster number
+        self.prd_dict = {}       # key: tuple of two cluster numbers
+        self.corr_dict = {}      # key: tuple of two cluster numbers
+        self.rnomc_dict = {}     # key: tuple of two cluster numbers
+        self.cluster_diameter = 0
+        self.n_of_instances = 0
+
+        for i in range(ts_quantity):
+            self.sum_dict[i] = 0.
+            for j in range(ts_quantity):
+                if j >= i:
+                    self.prd_dict[(i,j)] = 0.
+                    if j > i:
+                        self.corr_dict[(i,j)] = 0.
+                        self.rnomc_dict[(i,j)] = 0.
+
+    def print(self):
+        print("# n_of_instances = {}".format(self.n_of_instances))
+        print("# cluster_diameter = {}".format(self.cluster_diameter))
+        print("# sum_dict:")
+        print(self.sum_dict)
+        print("# prd_dict:")
+        print(self.prd_dict)
+        print("# corr_dict:")
+        print(self.corr_dict)
+        print("# rnomc_dict:")
+        print(self.rnomc_dict)
+
 
 class Cluster:
 
-    sum_matrix = None
-    prod_matrix = None
-    coor_matrix = None
-    rnomc_matrix = None
-    list_of_calculations = None
-    cluster_diameter = 0
-    n_of_instances = 0
-
     def __init__(self):
         self.active_cluster = True
-        #self.list_of_timeseries = 
+        self.statistics = None
+        self.child_left = None
+        self.child_right = None
+
 
     def set_cluster_timeseries(self,list_ts):
         self.list_of_timeseries = OrderedDict(sorted(list_ts.items(), key=lambda t: t[0]))
         cluster_size = len(self.list_of_timeseries)
-
-        #### initialize matrices
-        
-        self.list_of_calculations = list(combinations_with_replacement(list(range(0,cluster_size)), 2))
-
-        self.sum_matrix = np.zeros(shape=(cluster_size,cluster_size))
-        self.prod_matrix = np.zeros(shape=(cluster_size,cluster_size))
-        self.coor_matrix = np.zeros(shape=(cluster_size,cluster_size))
-        self.rnomc_matrix = np.zeros(shape=(cluster_size,cluster_size))
-
-
+        self.statistics = Statistics(cluster_size)
         self.update_statistics(init=True) ### does not generate ts samples only calculate matrices
-        
+
 
     def get_cluster_timeseries(self):
         return self.list_of_timeseries
 
-    
+
     def list_timeseries_names(self):
         return list(self.list_of_timeseries.keys())
 
-    
-    def calcula_sum_matrix(self,init=False):
-        
-        for comb in self.list_of_calculations:
-            i = comb[0]
-            j = comb[1]
-            if i == j:           
-                self.sum_matrix[i,j] = self.sum_matrix[i,j] \
-                                    + list(self.list_of_timeseries.values())[i].current_value 
-                                   
-        return self.sum_matrix
 
-    def calcula_prod_matrix(self,init=False):
-        
-        for comb in self.list_of_calculations:
-            i = comb[0]
-            j = comb[1]
-           
-            self.prod_matrix[i,j] = self.prod_matrix[i,j] \
-                                    + ( list(self.list_of_timeseries.values())[i].current_value \
-                                    * list(self.list_of_timeseries.values())[j].current_value ) 
-        return self.prod_matrix
+    def calcula_sum_dict(self,init=False):
 
-    def calcula_coor_matrix(self,init=False):
-        
-        for comb in self.list_of_calculations:
-            i = comb[0]
-            j = comb[1]
+        for k in self.statistics.sum_dict:
+            self.statistics.sum_dict[k] = self.statistics.sum_dict[k] \
+                + list(self.list_of_timeseries.values())[k].current_value
 
-            if i != j:    
-                p = self.prod_matrix[i,j]
-                a = self.sum_matrix[i,i]
-                a2 = self.prod_matrix[i,i]
-                b = self.sum_matrix[j,j]
-                b2 = self.prod_matrix[j,j]
-                n = self.n_of_instances
-
-                #print(p,a,a2,b,b2,n)
+        return self.statistics.sum_dict
 
 
-                term_p = p - ((a*b)/n)
-               # print(p," - ((" , a,"*", b,")/",n,")")
-                term_a = sqrt(a2 - ((a*a)/n))
-                term_b = sqrt(b2 - ((b*b)/n))
-                #print(term_p,term_a,term_b)
+    def calcula_prod_dict(self,init=False):
 
-                self.coor_matrix[i,j] = term_p/(term_a*term_b)
-        
-        return self.coor_matrix
+        for k in self.statistics.prd_dict:
+            self.statistics.prd_dict[k] = self.statistics.prd_dict[k] \
+                + ( list(self.list_of_timeseries.values())[k[0]].current_value \
+                * list(self.list_of_timeseries.values())[k[1]].current_value )
+
+        return self.statistics.prd_dict
+
+    def calcula_corr_dict(self,init=False):
+
+        for k in self.statistics.corr_dict:
+            i = k[0]
+            j = k[1]
+            p = self.statistics.prd_dict[(i,j)]
+            a = self.statistics.sum_dict[i]
+            a2 = self.statistics.prd_dict[(i,i)]
+            b = self.statistics.sum_dict[j]
+            b2 = self.statistics.prd_dict[(j,j)]
+            n = self.statistics.n_of_instances
+
+            term_p = p - ((a*b)/n)
+            term_a = sqrt(a2 - ((a*a)/n))
+            term_b = sqrt(b2 - ((b*b)/n))
+
+            self.statistics.corr_dict[(i,j)] = term_p/(term_a*term_b)
+
+        return self.statistics.corr_dict
 
 
-    def calcula_rnomc_matrix(self,init=False):
-        
-        list_of_rnorms = [] 
-        ### the highest value from list will be the diameter , set at the end
+    def calcula_rnomc_dict(self,init=False):
+
+        max_rnomc = None
+        for k in self.statistics.rnomc_dict:
+            self.statistics.rnomc_dict[k] = sqrt( (1-self.statistics.corr_dict[k]) / 2 )
+            if max_rnomc is None or self.statistics.rnomc_dict[k] > max_rnomc:
+                max_rnomc = self.statistics.rnomc_dict[k]
+
+        self.cluster_diameter = max_rnomc
+        return self.statistics.rnomc_dict
 
 
-        for comb in self.list_of_calculations:
-            i = comb[0]
-            j = comb[1]
-
-            if i != j:
-                coor_a_b = self.coor_matrix[i,j]    
-                self.rnomc_matrix[i,j] = sqrt( (1-coor_a_b) / 2 )
-                list_of_rnorms.append(self.rnomc_matrix[i,j])
-
-
-        self.cluster_diameter = max(list_of_rnorms)
-        return self.rnomc_matrix
-
-
-    
-    
-    
     def update_statistics(self , init=False):
 
         if init == False:
             self.get_new_timeseries_values()
 
-        self.n_of_instances += 1
+        print("### new observation:", end='')
+        for ts in list(self.list_of_timeseries.values()):
+            print(", {}".format(ts.current_value), end='')
+        print("")
 
-        ### calculate Matrice 
-        self.calcula_sum_matrix()
-        print(" --> SUM MATRIX")
-        print(self.sum_matrix)
+        self.statistics.n_of_instances += 1
+
+        ### calculate Matrice
+        self.calcula_sum_dict()
 
         ### calculate prod matrix
-        self.calcula_prod_matrix()
-        print(" --> PROD MATRIX")
-        print(self.prod_matrix)
+        self.calcula_prod_dict()
 
-        if self.n_of_instances > 5:
+        if self.statistics.n_of_instances > 5:
 
             ### calculate Matrice coor
-            self.calcula_coor_matrix()
-            print(" --> CORR MATRIX")
-            print(self.coor_matrix)
+            self.calcula_corr_dict()
 
             ### calculate Matrice dif
-            self.calcula_rnomc_matrix()
-            print(" --> RNORM MATRIX")
-            print(self.rnomc_matrix)
-            print(" ----> CLUSTER DIAMETER")
-            print(self.cluster_diameter)
-            
-    
+            self.calcula_rnomc_dict()
+
+        self.statistics.print()
+
+
     def get_new_timeseries_values(self):
         for ts in self.list_of_timeseries.values():
             ts.next_val()

@@ -12,15 +12,11 @@ series = generate_multi_timeseries(n=3)
 root_node = Node_of_tree('root_node')
 root_node.set_cluster_timeseries(series)
 
-### example run 10 times: 
-### for each active cluster - get next value for each series inside the cluster and 
+### example run 10 times:
+### for each active cluster - get next value for each series inside the cluster and
 ### calculate and update statistics
 
 for i in range(10):
-
+    
     for active_cluster in findall(root_node,filter_=lambda node: node.active_cluster is True):
         active_cluster.update_statistics()
-
-
-
-
