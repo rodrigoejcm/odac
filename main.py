@@ -17,6 +17,7 @@ root_node.set_cluster_timeseries(series)
 ### calculate and update statistics
 
 for i in range(10):
-    
+
     for active_cluster in findall(root_node,filter_=lambda node: node.active_cluster is True):
         active_cluster.update_statistics()
+        active_cluster.test_split()

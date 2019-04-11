@@ -4,6 +4,8 @@ from collections import OrderedDict
 import numpy as np
 from math import sqrt, log
 
+
+
 class Statistics:
 
     def __init__(self, ts_quantity):
@@ -12,9 +14,23 @@ class Statistics:
         self.prd_dict = {}       # key: tuple of two cluster numbers
         self.corr_dict = {}      # key: tuple of two cluster numbers
         self.rnomc_dict = {}     # key: tuple of two cluster numbers
-        self.cluster_diameter = 0
+        self.cluster_diameter = None
         self.n_of_instances = 0
-        self.hoeffding_bound = 0.
+        self.hoeffding_bound = None
+
+        # dictionary to store distance metrics between time series variables
+        # as suggested in the paper in 3.4.1 and 3.4.3
+        # key: tuple of two cluster numbers
+        # val: list of 3 elements: d0, d2 and d1, exactly in this order
+        #      where d0 is the smallest distance observed,
+        #      d1 the largest distance (= cluster diameter)
+        #      and d2 the second largest distance
+        self.dist_dict = {}
+
+        # dictionary to store sums of distance metrics for each time series variable
+        # key: tuple of two cluster numbers
+        # val: sum
+        self.dist_sum_dict = {}
 
         for i in range(ts_quantity):
             self.sum_dict[i] = 0.
@@ -24,6 +40,7 @@ class Statistics:
                     if j > i:
                         self.corr_dict[(i,j)] = 0.
                         self.rnomc_dict[(i,j)] = 0.
+                        self.dist_sum_dict[(i,j)] = 0.
 
     def print(self):
         print("# n_of_instances = {}".format(self.n_of_instances))
@@ -37,14 +54,19 @@ class Statistics:
         print("# rnomc_dict:")
         print(self.rnomc_dict)
         print("# hoeffding_bound = {}".format(self.hoeffding_bound))
+        print("# dist_dict:")
+        print(self.dist_dict)
+        print("# dist_sum_dict = {}".format(self.dist_sum_dict))
 
 
 class Cluster:
 
-    def __init__(self, confidence_level = 0.05):
+    def __init__(self, confidence_level = 0.05, n_min = 5, tau = 0.1):
         self.active_cluster = True
         self.statistics = None
         self.confidence_level = confidence_level
+        self.n_min = n_min
+        self.tau = tau
 
 
     def set_cluster_timeseries(self,list_ts):
@@ -122,6 +144,40 @@ class Cluster:
         return self.statistics.hoeffding_bound
 
 
+    def calcula_distances(self,init=False):
+
+        for i in range(len(self.list_of_timeseries.values())):
+            for j in range(len(self.list_of_timeseries.values())):
+                if j > i:
+
+                    d_cur = abs(list(self.list_of_timeseries.values())[j].current_value \
+                        - list(self.list_of_timeseries.values())[i].current_value)
+
+                    if (i,j) not in self.statistics.dist_dict:
+                        self.statistics.dist_dict[(i,j)] = [d_cur]
+                    else:
+
+                        dist_list = self.statistics.dist_dict[(i,j)]
+
+                        if d_cur < dist_list[0]:
+                            if len(dist_list) == 3:
+                                dist_list[0] = d_cur
+                            else:
+                                dist_list.insert(0, d_cur)
+                        elif d_cur >= dist_list[-1]:
+                            if len(dist_list) == 3:
+                                dist_list[2] = d_cur
+                            else:
+                                dist_list.append(d_cur)
+                        elif d_cur >= dist_list[-2]:
+                            if len(dist_list) == 3:
+                                dist_list[1] = d_cur
+                            else:
+                                dist_list.insert(1, d_cur)
+
+                    self.statistics.dist_sum_dict[(i,j)] += d_cur
+
+
     def update_statistics(self , init=False):
 
         if init == False:
@@ -140,7 +196,7 @@ class Cluster:
         ### calculate prod matrix
         self.calcula_prod_dict()
 
-        if self.statistics.n_of_instances > 5:
+        if self.statistics.n_of_instances >= self.n_min:
 
             ### calculate Matrice coor
             self.calcula_corr_dict()
@@ -148,7 +204,11 @@ class Cluster:
             ### calculate Matrice dif
             self.calcula_rnomc_dict()
 
+        # hoeffding bound as epsilon proposed in 3.4.1
         self.calcula_hoeffding_bound()
+
+        # distance parameters needed for checks in 3.4.1 and 3.4.3 of the paper
+        self.calcula_distances()
 
         self.statistics.print()
         print("")
@@ -157,6 +217,16 @@ class Cluster:
     def get_new_timeseries_values(self):
         for ts in self.list_of_timeseries.values():
             ts.next_val()
+
+
+    def test_split(self):
+
+        if self.statistics.n_of_instances < self.n_min:
+            return
+
+        # TODO: check using stored distance parameters and hoeffding bound, tau, n_min
+
+
 
 
 
