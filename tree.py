@@ -42,8 +42,6 @@ class Cluster:
     def __init__(self):
         self.active_cluster = True
         self.statistics = None
-        self.child_left = None
-        self.child_right = None
 
 
     def set_cluster_timeseries(self,list_ts):
