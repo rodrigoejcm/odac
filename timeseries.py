@@ -7,7 +7,7 @@ from skmultiflow.data.regression_generator import RegressionGenerator
 class Timeseries:
 
     current_value = None
-    strem_data_generator = RegressionGenerator(n_samples=50, n_features=1, n_informative=2, n_targets=1, random_state=2)
+    strem_data_generator = RegressionGenerator(n_samples=3000, n_features=1, n_informative=2, n_targets=1, random_state=2)
     strem_data_generator.prepare_for_use()
 
     def __init__(self, name):
@@ -16,7 +16,7 @@ class Timeseries:
         #print("TS ", self.name , " inicializado com valor: ", self.current_value )
     
     def next_val(self):
-        self.current_value = float('%.4f'%(self.strem_data_generator.next_sample()[0][0][0]))
+        self.current_value = float('%.2f'%(self.strem_data_generator.next_sample()[0][0][0]))
         return self.current_value
 
 ####################################
