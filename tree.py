@@ -10,32 +10,18 @@ class Statistics:
 
     def __init__(self, ts_quantity):
 
+        self.reset_sufficient_statistics(ts_quantity)
+        self.cluster_diameter = None
+        self.dist_dict_coef = {}
+        self.hoeffding_bound = None
+
+
+    def reset_sufficient_statistics(self, ts_quantity):
         self.sum_dict = {}       # key: cluster number
         self.prd_dict = {}       # key: tuple of two cluster numbers
         self.corr_dict = {}      # key: tuple of two cluster numbers
         self.rnomc_dict = {}     # key: tuple of two cluster numbers
-        self.cluster_diameter = None
         self.n_of_instances = 0
-        self.hoeffding_bound = None
-
-        # dictionary to store distance metrics between time series variables
-        # as suggested in the paper in 3.4.1 and 3.4.3
-        # key: tuple of two cluster numbers
-        # val: list of 3 elements: d0, d2 and d1, exactly in this order
-        #      where d0 is the smallest distance observed,
-        #      d1 the largest distance (= cluster diameter)
-        #      and d2 the second largest distance
-        self.dist_dict = {}
-
-        
-        self.dist_dict_coef = {}
-
-
-        # dictionary to store sums of distance metrics for each time series variable
-        # key: tuple of two cluster numbers
-        # val: sum
-        self.dist_sum_dict = {}
-
         for i in range(ts_quantity):
             self.sum_dict[i] = 0.
             for j in range(ts_quantity):
@@ -44,7 +30,6 @@ class Statistics:
                     if j > i:
                         self.corr_dict[(i,j)] = 0.
                         self.rnomc_dict[(i,j)] = 0.
-                        self.dist_sum_dict[(i,j)] = 0.
 
     def print(self):
         print("# n_of_instances = {}".format(self.n_of_instances))
@@ -58,9 +43,6 @@ class Statistics:
         #print("# rnomc_dict:")
         #print(self.rnomc_dict)
         #print("# hoeffding_bound = {}".format(self.hoeffding_bound))
-        #print("# dist_dict:")
-        #print(self.dist_dict)
-        #print("# dist_sum_dict = {}".format(self.dist_sum_dict))
 
 
 class Cluster:
@@ -135,7 +117,7 @@ class Cluster:
             if max_rnomc is None or self.statistics.rnomc_dict[k] > max_rnomc:
                max_rnomc = self.statistics.rnomc_dict[k]
 
-        self.cluster_diameter = max_rnomc 
+        self.cluster_diameter = max_rnomc
         return self.statistics.rnomc_dict
 
     def calcula_distances_coefficients(self):
@@ -157,10 +139,10 @@ class Cluster:
 
         rnorm_copy.pop(d1_pair, None)
 
-        if (rnorm_copy): 
-            ## in case rnorm dict has only one or 2 elements. in that case 
+        if (rnorm_copy):
+            ## in case rnorm dict has only one or 2 elements. in that case
             ## we are calculating this but we are not allowed to split.
-            ## TODO >>> we can also check the rnorm lenght in the begining. 
+            ## TODO >>> we can also check the rnorm lenght in the begining.
 
             d2_pair =  max(rnorm_copy, key=rnorm_copy.get)
             d2 =   rnorm_copy[max(rnorm_copy, key=rnorm_copy.get)]
@@ -182,49 +164,14 @@ class Cluster:
         return self.statistics.hoeffding_bound
 
 
-    def calcula_distances(self,init=False):
-
-        for i in range(len(self.list_of_timeseries.values())):
-            for j in range(len(self.list_of_timeseries.values())):
-                if j > i:
-
-                    d_cur = abs(list(self.list_of_timeseries.values())[j].current_value \
-                        - list(self.list_of_timeseries.values())[i].current_value)
-
-                    if (i,j) not in self.statistics.dist_dict:
-                        self.statistics.dist_dict[(i,j)] = [d_cur]
-                    else:
-
-                        dist_list = self.statistics.dist_dict[(i,j)]
-                        
-                        if d_cur < dist_list[0]:
-                            if len(dist_list) == 3:
-                                dist_list[0] = d_cur
-                            else:
-                                dist_list.insert(0, d_cur)
-                        elif d_cur >= dist_list[-1]:
-                            if len(dist_list) == 3:
-                                dist_list[2] = d_cur
-                            else:
-                                dist_list.append(d_cur)
-                        elif d_cur >= dist_list[-2]:
-                            if len(dist_list) == 3:
-                                dist_list[1] = d_cur
-                            else:
-                                dist_list.insert(1, d_cur)
-
-                    self.statistics.dist_sum_dict[(i,j)] += d_cur
-
-
     def update_statistics(self , init=False):
 
         if init == False:
             self.get_new_timeseries_values()
 
-        print("### new observation:", end='')
-        for ts in list(self.list_of_timeseries.values()):
-            print(", {}".format(ts.current_value), end='')
-        print("")
+        #print("### new observation:", end='')
+        #for ts in list(self.list_of_timeseries.values()):
+        #    print(", {}".format(ts.current_value), end='')
 
         self.statistics.n_of_instances += 1
 
@@ -247,28 +194,18 @@ class Cluster:
 
         # distance parameters needed for checks in 3.4.1 and 3.4.3 of the paper
 
-        # COMMENT RODRIGO : I did not anderstand what you did here, it seams that
-        # you are calculating a lot more and storing d0, d1. d2 for each series, and as single values
-        # for the cluster
-        
-        self.calcula_distances()
-
-        ### Added method to calculate d1,d2,d0......
-        
-        # COMMENT RODRIGO : Here i calculate those values for the cluster
-
         self.calcula_distances_coefficients()
 
 
         #self.statistics.print()
-        print("")
+        #print("")
 
 
     def get_new_timeseries_values(self):
         for ts in self.list_of_timeseries.values():
             ts.next_val()
 
-    
+
     def get_smaller_distance_with_pivot(self, pivot_1, pivot_2, current):
         """ Look for the distance
         in rnomc_dict given 2 pivots and an index
@@ -280,17 +217,17 @@ class Cluster:
         dist_2 = self.statistics.rnomc_dict[(min(pivot_2,current),max(pivot_2,current))]
 
         return 2 if dist_1 >= dist_2 else 1
-        
+
 
     def split_this_cluster(self, pivot_1, pivot_2):
 
         pivot_1_list = {}
-        
+
         temp_1 = list(self.list_of_timeseries.items())[pivot_1]
         pivot_1_list[temp_1[0]] = temp_1[1]
 
         pivot_2_list = {}
-        
+
         temp_2 = list(self.list_of_timeseries.items())[pivot_2]
         pivot_2_list[temp_2[0]] = temp_2[1]
 
@@ -313,7 +250,7 @@ class Cluster:
             new_name = "1"
         else:
             new_name = str(int(self.name[8:]) + 1)
-        
+
         cluster_child_1 = Node_of_tree('CH1_LVL_'+new_name, parent=self)
         cluster_child_1.set_cluster_timeseries(pivot_1_list)
 
@@ -325,12 +262,17 @@ class Cluster:
         self.active_cluster = False
 
 
+    def aggregate_this_cluster(self):
+
+        self.parent.statistics.reset_sufficient_statistics(len(self.list_of_timeseries))
+        self.children = []
+        self.active_cluster = True
+
+
     def test_split(self):
 
-        if (self.statistics.n_of_instances < self.n_min) | (self.statistics.dist_dict_coef['d2_val'] is None ) :
-            return
-        else:
-            
+        if self.statistics.n_of_instances >= self.n_min and self.statistics.dist_dict_coef['d2_val'] is not None:
+
             d0 = float(self.statistics.dist_dict_coef['d0_val'])
             d1 = float(self.statistics.dist_dict_coef['d1_val'])
             d2 = float(self.statistics.dist_dict_coef['d2_val'])
@@ -339,13 +281,13 @@ class Cluster:
             e =  float(self.statistics.hoeffding_bound)
 
             ### following 3.4.4 Split Algorithm
-            if ( (d1 - d2) > e ) | ( self.tau > self.statistics.hoeffding_bound ) :
-                print("### FIRST CONDITION MET")
+            if ( (d1 - d2) > e ) | ( t > e ) :
+                #print("### FIRST CONDITION MET")
                 if ( (d1 - d0) * abs( (d1 - avg) - (avg - d0)) ) > e:
-                    
+
                     x1 = self.statistics.dist_dict_coef['d1_pair'][0]
                     y1 = self.statistics.dist_dict_coef['d1_pair'][1]
-                    
+
                     print("#################")
                     print("##### SPLIT #####")
                     print("#################")
@@ -353,7 +295,36 @@ class Cluster:
                     print("#################")
 
                     self.split_this_cluster(pivot_1 = x1, pivot_2 = y1)
-                    
+
+                    return True
+        return False
+
+
+    def test_aggregate(self):
+
+        if self.parent is not None:
+
+            if self.statistics.dist_dict_coef['d1_val'] - self.parent.statistics.dist_dict_coef['d1_val'] \
+                > max(self.statistics.hoeffding_bound, self.parent.statistics.hoeffding_bound):
+
+                print("#################")
+                print("##### AGGR. #####")
+                print("#################")
+
+                print("checking: c_k={} c_j={} e_k={} e_j={}".format( \
+                    self.statistics.dist_dict_coef['d1_val'], \
+                    self.parent.statistics.dist_dict_coef['d1_val'], \
+                    self.statistics.hoeffding_bound, \
+                    self.parent.statistics.hoeffding_bound))
+
+                self.parent.aggregate_this_cluster()
+
+                return True
+        return False
+
+
+
+
 class Node_of_tree(Cluster, NodeMixin):  # Extension to class Cluster to use tree structure
     def __init__(self, name, parent=None, children=None):
         super(Node_of_tree, self).__init__()

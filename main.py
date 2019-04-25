@@ -6,7 +6,7 @@ from anytree import RenderTree
 
 ### INITIALIZE TIMESERIES ( n == number of timeseries)
 
-series = generate_multi_timeseries(n=40)
+series = generate_multi_timeseries(n=41)
 
 ### Initialize root node of the tree ( the initial cluster )
 ### and tet timeseries to initial cluster
@@ -21,9 +21,7 @@ for i in range(50):
 
     for active_cluster in findall(root_node,filter_=lambda node: node.active_cluster is True):
         active_cluster.update_statistics()
-        active_cluster.test_split()
-
-for pre, fill, node in RenderTree(root_node):
-        
-        print("%s%s%s" % (pre, node.name, node.list_timeseries_names() if node.active_cluster else " [NOT ACTIVE]" ))
-
+        if active_cluster.test_split() or active_cluster.test_aggregate():
+            print("tree at observation #{}".format(i))
+            for pre, fill, node in RenderTree(root_node):
+                print("%s%s %f %s" % (pre, node.name, node.statistics.dist_dict_coef['d1_val'], node.list_timeseries_names() if node.active_cluster else " [NOT ACTIVE]" ))
