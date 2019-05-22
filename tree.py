@@ -121,6 +121,10 @@ class Cluster:
         return self.statistics.rnomc_dict
 
     def calcula_distances_coefficients(self):
+
+        if len(self.statistics.rnomc_dict) == 0:
+            return
+
         rnorm_copy = self.statistics.rnomc_dict.copy()
 
         self.statistics.dist_dict_coef['avg'] = sum(rnorm_copy.values()) / len(rnorm_copy)
@@ -193,7 +197,6 @@ class Cluster:
         self.calcula_hoeffding_bound()
 
         # distance parameters needed for checks in 3.4.1 and 3.4.3 of the paper
-
         self.calcula_distances_coefficients()
 
 
@@ -271,7 +274,7 @@ class Cluster:
 
     def test_split(self):
 
-        if self.statistics.n_of_instances >= self.n_min and self.statistics.dist_dict_coef['d2_val'] is not None:
+        if self.statistics.n_of_instances >= self.n_min and self.statistics.dist_dict_coef.get('d2_val') is not None:
 
             d0 = float(self.statistics.dist_dict_coef['d0_val'])
             d1 = float(self.statistics.dist_dict_coef['d1_val'])
@@ -302,8 +305,7 @@ class Cluster:
 
     def test_aggregate(self):
 
-        if self.parent is not None:
-
+        if self.parent is not None and self.statistics.n_of_instances >= self.n_min and self.statistics.dist_dict_coef.get('d1_val') is not None:
             if self.statistics.dist_dict_coef['d1_val'] - self.parent.statistics.dist_dict_coef['d1_val'] \
                 > max(self.statistics.hoeffding_bound, self.parent.statistics.hoeffding_bound):
 
