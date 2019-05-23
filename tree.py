@@ -267,7 +267,7 @@ class Cluster:
 
     def aggregate_this_cluster(self):
 
-        self.parent.statistics.reset_sufficient_statistics(len(self.list_of_timeseries))
+        self.statistics.reset_sufficient_statistics(len(self.list_of_timeseries))
         self.children = []
         self.active_cluster = True
 
