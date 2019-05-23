@@ -1,29 +1,55 @@
 from skmultiflow.data.regression_generator import RegressionGenerator
+import numpy as np
 
-###################################
-## Timeseries class
-###################################
+class SinGenerator:
+    """Generator for a sine wave, with 10% random noise"""
 
-class Timeseries:
-
-    def __init__(self, name, n_samples, random_state):
-        self.name = name
-        self.current_value = None
-        self.strem_data_generator = RegressionGenerator(n_samples=n_samples+1, n_features=1, n_informative=2, n_targets=1, random_state=random_state)
-        self.strem_data_generator.prepare_for_use()
-        self.next_val()
-        #print("TS ", self.name , " inicializado com valor: ", self.current_value )
+    def __init__(self, start = 0, inc = 0.1):
+        self.state = start
+        self.inc = inc
 
     def next_val(self):
-        self.current_value = float('%.2f'%(self.strem_data_generator.next_sample()[0][0][0]))
+        self.state = self.state + self.inc
+        return np.sin(self.state) + np.random.randn()/10
+
+class CosGenerator:
+    """Generator for a cosine wave, with 10% random noise"""
+
+    def __init__(self, start = 0, inc = 0.1):
+        self.state = start
+        self.inc = inc
+
+    def next_val(self):
+        self.state = self.state + self.inc
+        return np.cos(self.state) + np.random.randn()/10
+
+class Timeseries:
+    """A single timeseries, with an associated id, name and generator"""
+
+    def __init__(self, id, name, generator):
+        self.id = id
+        self.name = name
+        self.current_value = None
+        self.generator = generator
+        self.next_val()
+
+    def next_val(self):
+        self.current_value = self.generator.next_val()
         return self.current_value
 
 ####################################
 
-def generate_multi_timeseries(n_ts, n_samples, random_state):
+def generate_multi_timeseries(n_ts):
+    """Generates the specified number of timeseries. All timeseries with an odd id
+       are based on a sine wave and all timeseries with an even id on a cosine wave"""
     dic_of_timeseries = {}
     for i in range(0,n_ts):
-        dic_of_timeseries["S"+str(i)] = Timeseries(name="S"+str(i), n_samples=n_samples, random_state=random_state+i)
+        name = "S"+str(i)
+        print("{}: {} generator".format(name, "sine" if i%2==0 else "cosine"))
+        dic_of_timeseries[name] = Timeseries( \
+            id=i, \
+            name=name, \
+            generator = SinGenerator() if i%2==0 else CosGenerator())
     return dic_of_timeseries
 
 def get_timeseries_next_value(dic_of_timeseries):
