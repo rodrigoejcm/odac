@@ -88,7 +88,7 @@ series['S5'].generator = SinGenerator(start=0.4)
 series['S6'].generator = SinGenerator(start=0.2)
 series['S7'].generator = SinGenerator(start=0.3)
 
-for i in range(2000,4000):
+for i in range(2000,3000):
     #print("# " + str(i))
     for active_cluster in findall(root_node,filter_=lambda node: node.active_cluster is True):
         active_cluster.update_statistics()
