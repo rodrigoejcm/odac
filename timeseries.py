@@ -33,8 +33,10 @@ class Timeseries:
         self.name = name
         self.current_value = None
         self.generator = generator
+        #self.file = open(self.name + ".csv","w")
         self.next_val()
 
     def next_val(self):
         self.current_value = self.generator.next_val()
+        #self.file.write("{}\r\n".format(self.current_value))
         return self.current_value
