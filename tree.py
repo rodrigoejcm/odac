@@ -5,16 +5,14 @@ import numpy as np
 from math import sqrt, log
 
 
-
 class Statistics:
+    """Maintains the sufficient statistics for a cluster"""
 
     def __init__(self, ts_quantity):
-
         self.reset_sufficient_statistics(ts_quantity)
         self.cluster_diameter = None
         self.dist_dict_coef = {}
         self.hoeffding_bound = None
-
 
     def reset_sufficient_statistics(self, ts_quantity):
         self.sum_dict = {}       # key: cluster number
@@ -33,19 +31,10 @@ class Statistics:
 
     def print(self):
         print("# n_of_instances = {}".format(self.n_of_instances))
-        #print("# cluster_diameter = {}".format(self.cluster_diameter))
-        #print("# sum_dict:")
-        #print(self.sum_dict)
-        #print("# prd_dict:")
-        #print(self.prd_dict)
-        #print("# corr_dict:")
-        #print(self.corr_dict)
-        #print("# rnomc_dict:")
-        #print(self.rnomc_dict)
-        #print("# hoeffding_bound = {}".format(self.hoeffding_bound))
 
 
 class Cluster:
+    """A cluster. Maintains all associated variables and provides all necessary functions to modify it"""
 
     def __init__(self, confidence_level = 0.9, n_min = 5, tau = 0.1):
         self.active_cluster = True
@@ -54,21 +43,17 @@ class Cluster:
         self.n_min = n_min
         self.tau = tau
 
-
     def set_cluster_timeseries(self,list_ts):
         self.list_of_timeseries = OrderedDict(sorted(list_ts.items(), key=lambda t: t[0]))
         cluster_size = len(self.list_of_timeseries)
         self.statistics = Statistics(cluster_size)
-        self.update_statistics(init=True) ### does not generate ts samples only calculate matrices
-
+        self.update_statistics(init=True) ### does not generate ts samples only calculates matrices
 
     def get_cluster_timeseries(self):
         return self.list_of_timeseries
 
-
     def list_timeseries_names(self):
         return list(self.list_of_timeseries.keys())
-
 
     def calcula_sum_dict(self,init=False):
 
@@ -285,7 +270,6 @@ class Cluster:
 
             ### following 3.4.4 Split Algorithm
             if ( (d1 - d2) > e ) | ( t > e ) :
-                #print("### FIRST CONDITION MET")
                 if ( (d1 - d0) * abs( (d1 - avg) - (avg - d0)) ) > e:
 
                     x1 = self.statistics.dist_dict_coef['d1_pair'][0]
@@ -294,7 +278,7 @@ class Cluster:
                     print("#################")
                     print("##### SPLIT #####")
                     print("#################")
-                    print(" >>> PIVOT: ", x1,y1)
+                    print(" >>> PIVOTS: x1={} y1={}".format(x1,y1))
                     print("#################")
 
                     self.split_this_cluster(pivot_1 = x1, pivot_2 = y1)
@@ -313,11 +297,12 @@ class Cluster:
                 print("##### AGGR. #####")
                 print("#################")
 
-                print("checking: c_k={} c_j={} e_k={} e_j={}".format( \
+                print(">>> VARIABLES: c_k={} c_j={} e_k={} e_j={}".format( \
                     self.statistics.dist_dict_coef['d1_val'], \
                     self.parent.statistics.dist_dict_coef['d1_val'], \
                     self.statistics.hoeffding_bound, \
                     self.parent.statistics.hoeffding_bound))
+                print("#################")
 
                 self.parent.aggregate_this_cluster()
 
@@ -334,3 +319,11 @@ class Node_of_tree(Cluster, NodeMixin):  # Extension to class Cluster to use tre
         self.parent = parent
         if children:
              self.children = children
+
+    def print(self):
+        for pre, fill, node in RenderTree(self):
+            print("%s%s %s %s" % ( \
+                pre, \
+                node.name, \
+                node.statistics.dist_dict_coef.get('d1_val'), \
+                node.list_timeseries_names() if node.active_cluster else " [NOT ACTIVE]" ))

@@ -6,9 +6,9 @@
 - Virtual Env (venv)
 
 
-### Exe
+### Execution
 
-1 - Clone the repo
+1 - Clone the repository
 
 
 2 - Create the environment:
@@ -21,7 +21,7 @@ python3 -m venv env
 source env/bin/activate
 ```
 
-4 - Install Dependencies:
+4 - Install dependencies:
 ```
 pip install --upgrade pip
 pip install -r requirements.txt
@@ -37,6 +37,6 @@ python main.py
 
 ### Reference
 
-ODAC algorith as described in:
-    
+ODAC algorithm as described in:
+
 - Rodrigues, Pedro Pereira, Joao Gama, and Joao Pedroso. "Hierarchical clustering of time-series data streams." IEEE transactions on knowledge and data engineering 20.5 (2008): 615-627.
