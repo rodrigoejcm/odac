@@ -1,4 +1,5 @@
 """Demonstration for clustering time series via ODAC algorithm"""
+
 import skmultiflow as sk
 from timeseries import Timeseries, SinGenerator
 from tree import Node_of_tree
